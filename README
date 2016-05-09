@@ -1,5 +1,6 @@
 Apache Evasive Maneuvers Module with X-Forwarded-For support
 For Apache 2.0
+Imran Mukadam
 Version 1.0
 
 LICENSE
@@ -235,9 +236,9 @@ then set this in your httpd.conf.
 LogDebugLevel
 -------------
 
-Enable debug loglevel mesaages in syslog.
+Enable debug loglevel messages in syslog.
 
-By befualt this is disabled (i.e. 0). Set to a vlaue of 1 to enable.
+By default this is disabled (i.e. 0). Set to a value of 1 to enable.
 
 
 WHITELISTING IP ADDRESSES
@@ -298,5 +299,5 @@ KNOWN BUGS
 FEEDBACK 
 
 Please email me with questions, constructive comments, or feedback:
-  jonathan@nuclearelephant.com
+  imran.alloneword@gmail.com
 
