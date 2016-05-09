@@ -1,7 +1,6 @@
-Apache Evasive Maneuvers Module
-For Apache 1.3 and 2.0
-Copyright (c) Deep Logic, Inc.
-Version 1.10 [2005.0117]
+Apache Evasive Maneuvers Module with X-Forwarded-For support
+For Apache 2.0
+Version 1.0
 
 LICENSE
 
@@ -46,14 +45,14 @@ legitimate requests are rarely ever compromised, only legitimate attacks.  Even
 a user repeatedly clicking on 'reload' should not be affected unless they do
 it maliciously.
 
-Three different module sources have been provided:
+WHAT CHANGES HAVE BEEN MADE IN THIS FORK ?
 
-Apache v1.3 API:	mod_evasive.c
-Apache v2.0 API:	mod_evasive20.c
-NSAPI (iPlanet):	mod_evasiveNSAPI.c *
-
-NOTE: mod_evasiveNSAPI is a port submitted by Reine Persson <reiper@rsv.se>
-      and is not officially supported as part of the mod_evasive project.
+mod_evasive version 1.10 by Deep Logic, Inc was limited to use remote IP value
+in in the request as the IP{ address of the requestor.
+This fork of mod_evasive defers to the first IP address in the X-Forwarded-For 
+header as the IP address of the requestor. If there is no X-Forwarded-For header
+then mod_evasive will fall back to use the remote IP value
+Also, this fork is only intended for Apache 2
 
 HOW IT WORKS
 
@@ -105,25 +104,6 @@ will most likely still take you offline.
 
 HOW TO INSTALL
 
-APACHE v1.3
------------
-
-Without DSO Support:
-
-1. Extract this archive into src/modules in the Apache source tree
-
-2. Run ./configure --add-module=src/modules/evasive/mod_evasive.c
-
-3. make, install
-
-4. Restart Apache 
-
-With DSO Support, Ensim, or CPanel:
-
-1. $APACHE_ROOT/bin/apxs -iac mod_evasive.c
-
-2. Restart Apache
-
 APACHE v2.0
 -----------
 
@@ -135,33 +115,11 @@ APACHE v2.0
 
 4. Restart Apache
 
-NSAPI
-SunONE (iPlanet,netscape) Installation
---------------------------------------
-
-Tested on:
-iPlanet 4.1sp12
-iPlanet 6.0sp5
-
-Edit compile script for your environment and compile mod_evasiveNSAPI.c
-to a shared library.
 
 CONFIGURATION
 
 mod_evasive has default options configured, but you may also add the
 following block to your httpd.conf:
-
-APACHE v1.3
------------
-
-<IfModule mod_evasive.c>
-    DOSHashTableSize    3097
-    DOSPageCount        2
-    DOSSiteCount        50
-    DOSPageInterval     1
-    DOSSiteInterval     1
-    DOSBlockingPeriod   10
-</IfModule>
 
 APACHE v2.0
 -----------
@@ -178,14 +136,11 @@ Optionally you can also add the following directives:
 
     DOSEmailNotify	you@yourdomain.com
     DOSSystemCommand	"su - someuser -c '/sbin/... %s ...'"
+    LogDebugLevel   1
     DOSLogDir		"/var/lock/mod_evasive"
 
 You will also need to add this line if you are building with dynamic support:
 
-APACHE v1.3
------------
-
-AddModule	mod_evasive.c
 
 APACHE v2.0
 -----------
@@ -194,45 +149,6 @@ LoadModule evasive20_module modules/mod_evasive20.so
 
 (This line is already added to your configuration by apxs)
 
-NSAPI
-SunONE (iPlanet,Netscape) Configuration
---------------------------------------
-                                                                                
-Configure iPlanet 4.1
----------------------
-
-Edit obj.conf:
-                                                                                
-Init fn="load-modules" funcs="mod_evasive_init,mod_evasive_check" shlib="/opt/ns-4.1/plugins/lib/mod_evasive.sl"
-                                                                                
-Init fn="mod_evasive_init" DOSPageCount=2 DOSSiteCount=50 DOSPageInterval=1 DOSSiteInterval=1 DOSBlockingPeriod=10 DOSWhitelist="10.60.0.7,10.65.0.10"
-                                                                                
-In the default object:
-PathCheck fn=mod_evasive_check
-                                                                                
-Or an own object
-<Object name="evasive" ppath="/DoSProtectedArea*">
-NameTrans fn=mod_evasive_check
-</Object>
-                                                                                
-                                                                                
-Configure iPlanet 6.0
----------------------
-                                                                                
-Edit magnus.conf:
-                                                                                
-Init fn="load-modules" funcs="mod_evasive_init,mod_evasive_check" shlib="/opt/iplanet-6.0/plugins/lib/mod_evasive.sl"
-                                                                                
-Init fn="mod_evasive_init" DOSWhitelist="10.60.0.7,10.65.0.10"
-                                                                                
-Edit obj.conf:
-In the default object:
-PathCheck fn=mod_evasive_check
-                                                                                
-Or an own object
-<Object name="evasive" ppath="/DoSProtectedArea*">
-NameTrans fn=mod_evasive_check
-</Object>
 
 DOSHashTableSize
 ----------------
@@ -315,6 +231,14 @@ security issues if your system is open to shell users.
 In the event you have nonprivileged shell users, you'll want to create a
 directory writable only to the user Apache is running as (usually root),
 then set this in your httpd.conf.
+
+LogDebugLevel
+-------------
+
+Enable debug loglevel mesaages in syslog.
+
+By befualt this is disabled (i.e. 0). Set to a vlaue of 1 to enable.
+
 
 WHITELISTING IP ADDRESSES
 

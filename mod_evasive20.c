@@ -139,13 +139,30 @@ static int access_checker(request_rec *r)
       char hash_key[2048];
       struct ntt_node *n;
       time_t t = time(NULL);
+      const char* x_frwd_head;
+      char *cleintip;
+
+      x_frwd_head = apr_table_get(r->headers_in, "X-Forwarded-For");
+      if (x_frwd_head != NULL) {
+        if (debug_level > 0) {
+          LOG(LOG_ALERT, "Checking header X-Forwarded-For: %s. URI: %s", x_frwd_head, r->uri);
+        }
+        // take the first IP from the X-Forwarded-For header as the client IP
+        cleintip = strtok(x_frwd_head, ",");
+      } else {
+        if (debug_level > 0) {
+          LOG(LOG_ALERT, "Checking remote_ip: %s. URI: %s", r->connection->remote_ip, r->uri)
+        }
+        // else take the remote_ip remoted in the request record
+        cleintip = r->connection->remote_ip;
+      }
 
       /* Check whitelist */
-      if (is_whitelisted(r->connection->remote_ip)) 
+      if (is_whitelisted(cleintip)) 
         return OK;
 
       /* First see if the IP itself is on "hold" */
-      n = ntt_find(hit_list, r->connection->remote_ip);
+      n = ntt_find(hit_list, cleintip);
 
       if (n != NULL && t-n->timestamp<blocking_period) {
  
@@ -157,14 +174,14 @@ static int access_checker(request_rec *r)
       } else {
 
         /* Has URI been hit too much? */
-        snprintf(hash_key, 2048, "%s_%s", r->connection->remote_ip, r->uri);
+        snprintf(hash_key, 2048, "%s_%s", cleintip, r->uri);
         n = ntt_find(hit_list, hash_key);
         if (n != NULL) {
 
           /* If URI is being hit too much, add to "hold" list and 403 */
           if (t-n->timestamp<page_interval && n->count>=page_count) {
             ret = HTTP_FORBIDDEN;
-            ntt_insert(hit_list, r->connection->remote_ip, time(NULL));
+            ntt_insert(hit_list, cleintip, time(NULL));
           } else {
 
             /* Reset our hit count list as necessary */
@@ -179,14 +196,14 @@ static int access_checker(request_rec *r)
         }
 
         /* Has site been hit too much? */
-        snprintf(hash_key, 2048, "%s_SITE", r->connection->remote_ip);
+        snprintf(hash_key, 2048, "%s_SITE", cleintip);
         n = ntt_find(hit_list, hash_key);
         if (n != NULL) {
 
           /* If site is being hit too much, add to "hold" list and 403 */
           if (t-n->timestamp<site_interval && n->count>=site_count) {
             ret = HTTP_FORBIDDEN;
-            ntt_insert(hit_list, r->connection->remote_ip, time(NULL));
+            ntt_insert(hit_list, cleintip, time(NULL));
           } else {
 
             /* Reset our hit count list as necessary */
@@ -207,27 +224,27 @@ static int access_checker(request_rec *r)
         struct stat s;
         FILE *file;
 
-        snprintf(filename, sizeof(filename), "%s/dos-%s", log_dir != NULL ? log_dir : DEFAULT_LOG_DIR, r->connection->remote_ip);
+        snprintf(filename, sizeof(filename), "%s/dos-%s", log_dir != NULL ? log_dir : DEFAULT_LOG_DIR, cleintip);
         if (stat(filename, &s)) {
           file = fopen(filename, "w");
           if (file != NULL) {
             fprintf(file, "%ld\n", getpid());
             fclose(file);
 
-            LOG(LOG_ALERT, "Blacklisting address %s: possible DoS attack.", r->connection->remote_ip);
+            LOG(LOG_ALERT, "Blacklisting address %s: possible DoS attack.", cleintip);
             if (email_notify != NULL) {
               snprintf(filename, sizeof(filename), MAILER, email_notify);
               file = popen(filename, "w");
               if (file != NULL) {
                 fprintf(file, "To: %s\n", email_notify);
-                fprintf(file, "Subject: HTTP BLACKLIST %s\n\n", r->connection->remote_ip);
-                fprintf(file, "mod_evasive HTTP Blacklisted %s\n", r->connection->remote_ip);
+                fprintf(file, "Subject: HTTP BLACKLIST %s\n\n", cleintip);
+                fprintf(file, "mod_evasive HTTP Blacklisted %s\n", cleintip);
                 pclose(file);
               }
             }
 
             if (system_command != NULL) {
-              snprintf(filename, sizeof(filename), system_command, r->connection->remote_ip);
+              snprintf(filename, sizeof(filename), system_command, cleintip);
               system(filename);
             }
  
@@ -713,4 +730,3 @@ module AP_MODULE_DECLARE_DATA evasive20_module =
     access_cmds,
     register_hooks
 };
-
