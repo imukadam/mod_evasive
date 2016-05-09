@@ -51,6 +51,7 @@ module AP_MODULE_DECLARE_DATA evasive20_module;
 #define DEFAULT_PAGE_INTERVAL   1       // Default 1 Second page interval
 #define DEFAULT_SITE_INTERVAL   1       // Default 1 Second site interval
 #define DEFAULT_BLOCKING_PERIOD 10      // Default for Detected IPs; blocked for 10 seconds
+#define DEFAULT_DEBUG_LEVEL     0       // Default debug level; set to 1 to enable
 #define DEFAULT_LOG_DIR		"/tmp"  // Default temp directory
 
 /* END DoS Evasive Maneuvers Definitions */
@@ -102,6 +103,7 @@ static int page_interval = DEFAULT_PAGE_INTERVAL;
 static int site_count = DEFAULT_SITE_COUNT;
 static int site_interval = DEFAULT_SITE_INTERVAL;
 static int blocking_period = DEFAULT_BLOCKING_PERIOD;
+static int debug_level = DEFAULT_DEBUG_LEVEL;
 static char *email_notify = NULL;
 static char *log_dir = NULL;
 static char *system_command = NULL;
@@ -612,6 +614,18 @@ get_blocking_period(cmd_parms *cmd, void *dconfig, const char *value) {
 }
 
 static const char *
+get_defualt_debug_lvl(cmd_parms *cmd, void *dconfig, const char *value) {
+  long n = strtol(value, NULL, 0);
+  if (n<=0) {
+    debug_level = DEFAULT_DEBUG_LEVEL;
+  } else {
+    debug_level = n;
+  }
+
+  return NULL;
+}
+
+static const char *
 get_log_dir(cmd_parms *cmd, void *dconfig, const char *value) {
   if (value != NULL && value[0] != 0) {
     if (log_dir != NULL)
@@ -649,34 +663,37 @@ get_system_command(cmd_parms *cmd, void *dconfig, const char *value) {
 static const command_rec access_cmds[] =
 {
 	AP_INIT_TAKE1("DOSHashTableSize", get_hash_tbl_size, NULL, RSRC_CONF, 
-		"Set size of hash table"),
+  "Set size of hash table"),
 
-        AP_INIT_TAKE1("DOSPageCount", get_page_count, NULL, RSRC_CONF,
-		"Set maximum page hit count per interval"),
+  AP_INIT_TAKE1("DOSPageCount", get_page_count, NULL, RSRC_CONF,
+  "Set maximum page hit count per interval"),
 
-        AP_INIT_TAKE1("DOSSiteCount", get_site_count, NULL, RSRC_CONF,
-		"Set maximum site hit count per interval"),
+  AP_INIT_TAKE1("DOSSiteCount", get_site_count, NULL, RSRC_CONF,
+  "Set maximum site hit count per interval"),
 
-        AP_INIT_TAKE1("DOSPageInterval", get_page_interval, NULL, RSRC_CONF,
-		"Set page interval"),
+  AP_INIT_TAKE1("DOSPageInterval", get_page_interval, NULL, RSRC_CONF,
+  "Set page interval"),
 
 	AP_INIT_TAKE1("DOSSiteInterval", get_site_interval, NULL, RSRC_CONF,
-		"Set site interval"),
+  "Set site interval"),
 
-        AP_INIT_TAKE1("DOSBlockingPeriod", get_blocking_period, NULL, RSRC_CONF,
-		"Set blocking period for detected DoS IPs"),
+  AP_INIT_TAKE1("DOSBlockingPeriod", get_blocking_period, NULL, RSRC_CONF,
+  "Set blocking period for detected DoS IPs"),
+
+  AP_INIT_TAKE1("LogDebugLevel", get_defualt_debug_lvl, NULL, RSRC_CONF,
+  "Set log messages verbosity"),
 
 	AP_INIT_TAKE1("DOSEmailNotify", get_email_notify, NULL, RSRC_CONF,
-		"Set email notification"),
+  "Set email notification"),
 
 	AP_INIT_TAKE1("DOSLogDir", get_log_dir, NULL, RSRC_CONF,
-		"Set log dir"),
+  "Set log dir"),
 
 	AP_INIT_TAKE1("DOSSystemCommand", get_system_command, NULL, RSRC_CONF,
-		"Set system command on DoS"),
+  "Set system command on DoS"),
 
-        AP_INIT_ITERATE("DOSWhitelist", whitelist, NULL, RSRC_CONF,
-                "IP-addresses wildcards to whitelist"),
+  AP_INIT_ITERATE("DOSWhitelist", whitelist, NULL, RSRC_CONF,
+  "IP-addresses wildcards to whitelist"),
 
 	{ NULL }
 };
